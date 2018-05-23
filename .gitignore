@@ -1,6 +1,9 @@
 #idea
 .idea
 
+#config
+config/app.js
+
 # Logs
 logs
 *.log
