@@ -33,7 +33,6 @@ app.set('view engine', 'ejs');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, '../app/images/favicon.ico')));
 app.use(logger('dev'));
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false , limit:"10000kb" }));
 app.use(cookieParser());
@@ -47,7 +46,7 @@ app.use('/images', function (req, res, next)  {
 });
 
 app.use('/', function (req, res, next)  {
-   return res.json({"tt":"fsdg"});
+   return res.send("欢迎");
 });
 
 // catch 404 and forward to error handler
