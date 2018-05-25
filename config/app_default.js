@@ -1,5 +1,6 @@
 exports.app ={
     "sitePort": 3000,
+    "loopTick" : 10000,
     "dev": {
         yuanTong_secret: '',
         yuanTong_appId: '',//md5 加密完成后
