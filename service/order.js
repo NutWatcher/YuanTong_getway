@@ -1,326 +1,89 @@
-var fs = require('fs');
-var http = require('http');
-var crypto = require('crypto');
-var querystring = require('querystring');
-var moment = require('moment');
+let fs = require('fs');
+let http = require('http');
+let crypto = require('crypto');
+let querystring = require('querystring');
+let moment = require('moment');
+
+let db = require('../util/DB');
+let UploadService = require('./upload');
+let LoopService = require('../util/Loop');
 class Order_Service {
     constructor() {
     }
     static add(orderList){
-
-        return res ;
-    }
-    static getToken() {
         return new Promise(async (resolve, reject) => {
-            //console.log("ExpressYuanTong_Service getToken" );
             try {
-                var secret = global.APPCONFIG.yuanTong_secret;
-                var appId = global.APPCONFIG.yuanTong_appId;
-                var post_data = {
-                    "secret": secret,
-                    "appid": appId
-                };
-                post_data = querystring.stringify(post_data);
-                var options = {
-                    host:global.APPCONFIG.yuanTong_ip,
-                    port:global.APPCONFIG.yuanTong_port,
-                    path:global.APPCONFIG.yuanTong_tokenPath + '?' + post_data,
-                    method: 'GET',
-                    headers: {
-                    }
-                };
-                var chunks = new Buffer('');
-                var req = http.request(options, function(res) {
-                    console.log('STATUS: ' + res.statusCode);
-                    //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                    res.setEncoding('utf8');
-                    res.on('data', function (chunk) {
-                        chunks = chunks.concat(chunk);
-                    });
-                    res.on('end', async function () {
-                        //      resolve(chunks.toString());
-                        console.log("------------" + chunks.toString());
-                        let token = JSON.parse(chunks.toString()) ;
-                        if (token.result != 1){
-                            return resolve({
-                                success:false ,
-                                msg:"获取token出错，错误代码：" + token.error_code.toString(),
-                                result:{}
-                            })
-                        }
-                        else {
-                            return resolve({
-                                success:true ,
-                                msg:"",
-                                result:{
-                                    token: token.token
-                                }
-                            })
-                        }
-                    });
-                });
-                //30秒超时处理
-                req.setTimeout(30000, function() {
-                    console.log("圆通超时");
-                    if (req.res) {
-                        req.res.emit("abort");
-                    }
-                    req.abort();
-                });
-                req.on('error', function(e) {
-                    console.log('ExpressYuanTong_Service getToken problem with request: ' + e.message);
-                    reject(e);
-                });
-                console.log(post_data);
-                req.end();
+                let res = {} , sqlTempStr, sqlStr, values;
+                sqlTempStr = "select * from tb_express where id= ? ";
+                values = [express_id];
+                sqlStr = mysql.format(sqlTempStr, values);
+                res = await db.queryDbPromise(sqlStr);
+                resolve(res);
             }
             catch(e){
-                console.log("ExpressYuanTong_Service getToken error");
-                console.log(e.stack);
+                console.log("report " + e.stack);
                 reject(e);
             }
             finally{
             }
         });
     }
-    static getBalance() {
+    static startOrderUpload(){
         return new Promise(async (resolve, reject) => {
-            console.log("ExpressYuanTong_Service getBalance" );
+            let uploadAction = false;
             try {
-                let resSign =  ExpressYuanTong_Service.signature([]);
+                let res = {} , sqlTempStr, sqlStr, values;
+                sqlTempStr = "select * from config where id = 2 ;";
+                values = [];
+                sqlStr = mysql.format(sqlTempStr, values);
+                res = await db.queryDbPromise(sqlStr);
 
-                let post_data ={
-                    appKey: resSign.appKey,
-                    format: "json",
-                    timestamp: resSign.timestamp,
-                    sign: resSign.sign,
-                };
-                post_data = querystring.stringify(post_data);
-                post_data= post_data.replace(resSign.time + "%20", resSign.time+"+");
-                console.log(post_data);
-                var options = {
-                    host:global.APPCONFIG.yuanTong_host,
-                    path:global.APPCONFIG.yuanTong_balancePath ,
-                    method: 'post',
-                    headers: {
-                        'Content-Type':"application/x-www-form-urlencoded;charset=utf-8",
-                        "Content-Length": post_data.length
-                    }
-                };
-                var chunks = new Buffer('');
-                var req = http.request(options, function(res) {
-                    console.log('STATUS: ' + res.statusCode);
-                    //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                    res.setEncoding('utf8');
-                    res.on('data', function (chunk) {
-                        chunks = chunks.concat(chunk);
-                    });
-                    res.on('end', async function () {
-                        resolve(chunks.toString());
-                    });
-                });
-
-                //30秒超时处理
-                req.setTimeout(30000, function() {
-                    console.log("圆通超时");
-                    if (req.res) {
-                        req.res.emit("abort");
-                    }
-                    req.abort();
-                });
-                req.on('error', function(e) {
-                    console.log('ExpressYuanTong_Service getBalance problem with request: ' + e.message);
-                    reject(e);
-                });
-                req.write(post_data);
-                req.end();
-
-            }
-            catch(e){
-                console.log("ExpressYuanTong_Service getBalance error");
-                console.log(e.stack);
-                reject(e);
-            }
-            finally{
-            }
-        });
-    }
-    static getInfo(orders) {
-        return new Promise(async (resolve, reject) => {
-            console.log("ExpressYuanTong_Service getInfo" );
-            console.log(orders );
-            try {
-                let resToken = await ExpressYuanTong_Service.getToken();
-                if(resToken.success == false){
-                    return resolve(resToken) ;
+                let orderQueue = res[0].value;
+                sqlTempStr = "select * from order where id = ? ;";
+                values = [orderQueue];
+                sqlStr = mysql.format(sqlTempStr, values);
+                res = await db.queryDbPromise(sqlStr);
+                if (res.length == 0){
+                    return resolve();
                 }
 
-                var post_data = {
-                    "token": resToken.result.token,
-                    "data":JSON.stringify(orders)
-                };
-                post_data = querystring.stringify(post_data);
-                console.log(post_data);
-                var options = {
-                    host:global.APPCONFIG.yuanTong_ip,
-                    port:global.APPCONFIG.yuanTong_port,
-                    path:global.APPCONFIG.yuanTong_searchPath,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type':"application/x-www-form-urlencoded;charset=utf-8",
-                        "Content-Length": post_data.length
-                    }
-                };
-                var chunks = new Buffer('');
-                var req = http.request(options, function(res) {
-                    //console.log('STATUS: ' + res.statusCode);
-                    //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                    res.setEncoding('utf8');
-                    res.on('data', function (chunk) {
-                        chunks = chunks.concat(chunk);
-
-                    });
-                    res.on('end', async function () {
-                        resolve(chunks.toString());
-                    });
-                });
-                req.setTimeout(30000, function() {
-                    console.log("圆通超时");
-                    if (req.res) {
-                        req.res.emit("abort");
-                    }
-                    req.abort();
-                });
-                req.on('error', function(e) {
-                    console.log('ExpressYuanTong_Service getInfo problem with request: ' + e.message);
-                    reject(e);
-                });
-                req.write(post_data);
-                req.end();
-
-            }
-            catch(e){
-                console.log("ExpressYuanTong_Service getInfo error");
-                console.log(e.stack);
-                let err = new Error(e.name);
-                err.message = e.message ;
-                err.stack += e.stack;
-                reject(err);
-            }
-            finally{
-            }
-        });
-    }
-    static uploadOrder(orders, Platform) {
-        return new Promise(async (resolve, reject) => {
-            console.log("ExpressYuanTong_Service uploadOrder" );
-            try {
-                //console.log(orders);
-                let order_data = [];
-                for (let i = 0 ; i < orders.length ; i ++){
-                    let temp_data ;
-                    if(!isNaN(orders[i].reciever_phone)){
-                        orders[i].reciever_phone = (parseInt(orders[i].reciever_phone) + 10000).toString();
-                    }
-                    else{
-                        orders[i].OfficePhone = orders[i].reciever_phone ;
-                        orders[i].reciever_phone = "";
-                    }
-                    if(!isNaN(orders[i].seller_phone)){
-                        orders[i].seller_phone = (parseInt(orders[i].seller_phone) + 10000).toString();
-                    }
-                    else{
-                        orders[i].SendCellPhone = orders[i].seller_phone ;
-                        orders[i].seller_phone = "";
-                    }
-                    let tempWeight = orders[i].weight;
-                    console.log(tempWeight);
-                    tempWeight = tempWeight.replace(/\s+/g, "")==""?0.5:tempWeight;
-                    console.log(tempWeight);
-                    tempWeight = isNaN(tempWeight) ? 0.5 : tempWeight ;
-                    console.log(tempWeight);
-                    temp_data = {
-                        "Platform": Platform ,
-                        "OrderNo" : orders[i].dingdan_id ,
-                        "Contact" : orders[i].reciever_name ,
-                        "OfficePhone": orders[i].OfficePhone ,
-                        "CellPhone" : orders[i].reciever_phone ,
-                        "State" : orders[i].reciever_prov  ,
-                        "City" : orders[i].reciever_city ,
-                        "District" : orders[i].reciever_area ,
-                        "Address" : orders[i].reciever_address ,
-
-                        "SendContact" : orders[i].seller_name ,
-                        "SendOfficePhone" : orders[i].seller_phone ,
-                        "SendCellPhone": orders[i].SendCellPhone ,
-                        "SendState" : orders[i].seller_prov ,
-                        "SendCity" : orders[i].seller_city ,
-                        "SendDistrict" : orders[i].seller_area ,
-                        "SendAddress" :  orders[i].seller_address ,
-
-                        "ProductTitle" : orders[i].goods_name,
-                        "Weight" : tempWeight.toString()
-                    };
-                    order_data.push(temp_data);
+                // need upload
+                let order = res[0];
+                //todo platform
+                let platform = 1;
+                let resChunk = await UploadService.uploadOrder([order], platform);
+                let status = 400;
+                if (resChunk.status != 200){
+                    status = 404;
                 }
-                let resSign =  ExpressYuanTong_Service.signature(["orders"+JSON.stringify(order_data),"logiType4"]);
-                let post_data ={
-                    orders:JSON.stringify(order_data),
-                    logiType:"4",
-                    appKey: resSign.appKey,
-                    format: "json",
-                    timestamp: resSign.timestamp,
-                    sign: resSign.sign,
-                };
-                console.log(post_data);
-                post_data = querystring.stringify(post_data);
-                console.log(post_data);
-                var options = {
-                    host:global.APPCONFIG.yuanTong_host,
-                    path:global.APPCONFIG.yuanTong_orderUpPath,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type':"application/x-www-form-urlencoded;charset=utf-8",
-                        "Content-Length": post_data.length
-                    }
-                };
-                var chunks = new Buffer('');
-                var req = http.request(options, function(res) {
-                    console.log('STATUS: ' + res.statusCode);
-                    console.log('HEADERS: ' + JSON.stringify(res.headers));
-                    res.setEncoding('utf8');
-                    res.on('data', function (chunk) {
-                        chunks = chunks.concat(chunk);
+                console.log(resChunk.chunks);
+                let temp_chunk = JSON.parse(resChunk.chunks);
+                if (temp_chunk.IsError == undefined) {
+                    status = 10;
+                }
+                else {
+                    status = temp_chunk.Code;
+                }
+                sqlTempStr = "UPDATE `order` SET `state`= ? WHERE `id`= ?;";
+                values = [status, order.id];
+                sqlStr = mysql.format(sqlTempStr, values);
+                await db.queryDbPromise(sqlStr);
 
-                    });
-                    res.on('end', async function () {
-                        resolve({
-                            status:res.statusCode,
-                            chunks:chunks.toString()
-                        });
-                    });
-                });
-                req.setTimeout(120000, function() {
-                    console.log("圆通超时");
-                    if (req.res) {
-                        req.res.emit("abort");
-                    }
-                    req.abort();
-                });
-                req.on('error', function(e) {
-                    console.log('ExpressYuanTong_Service uploadOrder problem with request: ' + e.message);
-                    reject(e);
-                });
-                req.write(post_data);
-                req.end();
+                let orderQueue = res[0].value;
+                sqlTempStr = "UPDATE `config` SET `value`= ? WHERE `id`='2';";
+                values = [ parseInt(orderQueue) + 1 ];
+                sqlStr = mysql.format(sqlTempStr, values);
+                await db.queryDbPromise(sqlStr);
 
+                uploadAction = true;
+                return resolve();
             }
             catch(e){
-                console.log("ExpressYuanTong_Service uploadOrder error");
-                console.log(e.stack);
+                console.log(`report ${e.stack}`);
                 reject(e);
             }
             finally{
+                LoopService.EndEmitter(uploadAction);
             }
         });
     }

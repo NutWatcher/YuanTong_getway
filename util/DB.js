@@ -1,10 +1,10 @@
 /**
  * Created by lyy on 2015/10/5.
  */
-var moment = require('moment');
-var mysql = require('mysql');
-var dbConfig = require('../config/app.js').dataBase;
-var pool  = mysql.createPool({
+let moment = require('moment');
+let mysql = require('mysql');
+let dbConfig = require('../config/app.js').dataBase;
+let pool  = mysql.createPool({
     "host": dbConfig.host,
     "port": dbConfig.port,
     "database": dbConfig.database,
