@@ -14,11 +14,33 @@ class Order_Service {
         return new Promise(async (resolve, reject) => {
             try {
                 let res = {} , sqlTempStr, sqlStr, values;
-                sqlTempStr = "select * from tb_express where id= ? ";
-                values = [express_id];
-                sqlStr = mysql.format(sqlTempStr, values);
-                res = await db.queryDbPromise(sqlStr);
-                resolve(res);
+
+                Conn = await db.beginTransactionsPromise();
+                let initState = "5";
+                sqlTempStr = "INSERT INTO `order` " +
+                    " (`state`, `dingdanhao`, `yundanhao`," +
+                    " `seller_prov`, `seller_city`, `seller_area`, `seller_address`, `seller_name`, `seller_phone`," +
+                    " `receiver_prov`, `receiver_city`, `receiver_area`, `receiver_address`, `receiver_name`, `receiver_phone`," +
+                    " `product`, `weight`, `create_time`) VALUES " +
+                    "( ? , ? , ? , ? , ? , ? , ? , ? , ? , ?, ? , ? , ? , ? , ? , ? , ? , (select sysdate()));";
+                for (let i = 0 ; i < orderList.length ; i ++ ) {
+                    let tempDingDan = orderList[i];
+                    //console.log(tempDingDan);
+                    values = [initState, tempDingDan.dingdan_id, tempDingDan.yundan_id,
+                        tempDingDan.seller_prov, tempDingDan.seller_city, tempDingDan.seller_area, tempDingDan.seller_address,
+                        tempDingDan.seller_name, tempDingDan.seller_phone,
+                        tempDingDan.reciever_prov, tempDingDan.reciever_city, tempDingDan.reciever_area, tempDingDan.reciever_address,
+                        tempDingDan.reciever_name, tempDingDan.reciever_phone,
+                        tempDingDan.goods_name, tempDingDan.weight
+                    ];
+                    sqlStr = mysql.format(sqlTempStr, values);
+                    console.log(sqlStr);
+                    await db.tranQueryDbPromise(sqlStr, Conn);
+                }
+                await db.commitTransactionsPromise(Conn);
+                return resolve({
+                    "success": true
+                });
             }
             catch(e){
                 console.log("report " + e.stack);

@@ -1,15 +1,35 @@
 var express = require('express');
 var router = express.Router();
+
+let OrderService = require('../service/order');
 router.post('/pushOrder', async (req, res, next) => {
     try {
         console.log("pushOrder");
+        let orderList = req.body.orderList;
+        let orderUUID = req.body.orderUUID || "UUID";
+        console.log("orderUUID " + orderUUID);
+        let res = await OrderService.add(orderList);
+        if (res.success == true){
+            return res.json({
+                code: 1001,
+                msg: '加入队列成功!',
+                result: {}
+            });
+        }
+        else {
+            return res.json({
+                code: 4004,
+                msg: '出错了..加入队列失败！' + res.msg,
+                result: {}
+            });
+        }
     }
     catch (e) {
         console.log(e.stack);
         return res.json({
             code: 4004,
             msg: '出错了..重新生成物流失败！' + e.toString(),
-            result: []
+            result: {}
         });
     } finally {
     }
