@@ -37,12 +37,31 @@ router.post('/pushOrder', async (req, res, next) => {
 router.post('/pullOrder', async (req, res, next) => {
     try {
         console.log("pullOrder");
+        let orderList = req.body.orderList;
+        let infoList = OrderService.getState(orderList) ;
+        let infoSet = new Set();
+        let resList = [];
+        for (let i = 0 ; i < infoList.length; i ++){
+            if (infoSet.has(infoList[i].dingdanhao)){
+                continue ;
+            }
+            infoSet.add(infoList[i].dingdanhao);
+            resList.push({
+                dingdanhao: infoList[i].dingdanhao,
+                state: infoList[i].state
+            })
+        }
+        return res.json({
+            code: 1001,
+            msg: '获取成功！',
+            result: resList
+        });
     }
     catch (e) {
         console.log(e.stack);
         return res.json({
             code: 4004,
-            msg: '出错了..重新生成物流失败！' + e.toString(),
+            msg: '出错了..获取订单信息出错！' + e.toString(),
             result: []
         });
     } finally {

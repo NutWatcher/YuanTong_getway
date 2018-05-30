@@ -50,6 +50,27 @@ class Order_Service {
             }
         });
     }
+    static getState(orderList = []){
+        return new Promise(async (resolve, reject) => {
+            try {
+                let sqlTempStr, sqlStr, values = [];
+                sqlTempStr = "SELECT id, state, dingdanhao FROM `order` where dingdanhao in ? order by id desc ;";
+                for (let i = 0 ; i < orderList.length ; i ++ ) {
+                    values.push(orderList[i].dingdan_id);
+                }
+                sqlStr = mysql.format(sqlTempStr, values);
+                console.log(sqlStr);
+                let res = await db.queryDbPromise(sqlStr);
+                return resolve(res);
+            }
+            catch(e){
+                console.log("report " + e.stack);
+                reject(e);
+            }
+            finally{
+            }
+        });
+    }
     static startOrderUpload(){
         return new Promise(async (resolve, reject) => {
             let uploadAction = false;
