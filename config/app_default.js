@@ -31,3 +31,12 @@ exports.dataBase = {
     multipleStatements: true,
     connectionLimit : 3
 };
+exports.dataBase = {
+    host : "",
+    port : "",
+    database : "",
+    user : "",
+    password : "",
+    multipleStatements: true,
+    connectionLimit : 1
+};

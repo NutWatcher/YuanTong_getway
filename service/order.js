@@ -4,6 +4,7 @@ let crypto = require('crypto');
 let querystring = require('querystring');
 let moment = require('moment');
 
+let masterDb = require('../util/MasterDB');
 let db = require('../util/DB');
 let UploadService = require('./upload');
 let LoopService = require('../util/Loop');
@@ -18,15 +19,15 @@ class Order_Service {
                 Conn = await db.beginTransactionsPromise();
                 let initState = "5";
                 sqlTempStr = "INSERT INTO `order` " +
-                    " (`state`, `dingdanhao`, `yundanhao`," +
+                    " (`state`, `master_db_id`, `dingdanhao`, `yundanhao`," +
                     " `seller_prov`, `seller_city`, `seller_area`, `seller_address`, `seller_name`, `seller_phone`," +
                     " `receiver_prov`, `receiver_city`, `receiver_area`, `receiver_address`, `receiver_name`, `receiver_phone`," +
                     " `product`, `weight`, `create_time`) VALUES " +
-                    "( ? , ? , ? , ? , ? , ? , ? , ? , ? , ?, ? , ? , ? , ? , ? , ? , ? , (select sysdate()));";
+                    "( ? , ? , ? , ? , ? , ? , ? , ? , ? , ? , ?, ? , ? , ? , ? , ? , ? , ? , (select sysdate()));";
                 for (let i = 0 ; i < orderList.length ; i ++ ) {
                     let tempDingDan = orderList[i];
                     //console.log(tempDingDan);
-                    values = [initState, tempDingDan.dingdan_id, tempDingDan.yundan_id,
+                    values = [initState, tempDingDan.dingdan_db_id, tempDingDan.dingdan_id, tempDingDan.yundan_id,
                         tempDingDan.seller_prov, tempDingDan.seller_city, tempDingDan.seller_area, tempDingDan.seller_address,
                         tempDingDan.seller_name, tempDingDan.seller_phone,
                         tempDingDan.reciever_prov, tempDingDan.reciever_city, tempDingDan.reciever_area, tempDingDan.reciever_address,
@@ -102,7 +103,7 @@ class Order_Service {
                 console.log(resChunk.chunks);
                 let temp_chunk = JSON.parse(resChunk.chunks);
                 if (temp_chunk.IsError == undefined) {
-                    status = 10;
+                    status = 4;
                 }
                 else {
                     status = temp_chunk.Code;
@@ -112,11 +113,43 @@ class Order_Service {
                 sqlStr = mysql.format(sqlTempStr, values);
                 await db.queryDbPromise(sqlStr);
 
+                //更新master order 状态
+                let masterOrderId = order.master_db_id;
+                sqlTempStr = "SELECT * FROM tb_order_status_name where express_id = ? and status_code = ?;";
+                let tempExpressId = 5 ;
+                if (status == 10 || status == 404){ tempExpressId = 0; }
+                values = [tempExpressId , status];
+                sqlStr = mysql.format(sqlTempStr, values);
+                let resStatus = await masterDb.queryDbPromise(sqlStr);
+                let masterStatus = resStatus[0].id || 3;
+                sqlTempStr = "UPDATE `tb_slave_order_status` SET `status_id`= ? WHERE `id`= ?;";
+                values = [masterStatus, masterOrderId];
+                sqlStr = mysql.format(sqlTempStr, values);
+                await masterDb.queryDbPromise(sqlStr);
+
+                if (temp_chunk.Data[0].OrderNo == order.dingdanhao){
+                    let yundanhao = temp_chunk.Data[0].WaybillNo;
+
+                    sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
+                    values = [yundanhao, order.id];
+                    sqlStr = mysql.format(sqlTempStr, values);
+                    await db.queryDbPromise(sqlStr);
+
+                    sqlTempStr = "UPDATE `tb_slave_order` SET `yundan_id`= ?  WHERE `id`= ? ;";
+                    values = [yundanhao, masterOrderId];
+                    sqlStr = mysql.format(sqlTempStr, values);
+                    await masterDb.queryDbPromise(sqlStr);
+
+                }
+
+
                 let orderQueue = res[0].value;
                 sqlTempStr = "UPDATE `config` SET `value`= ? WHERE `id`='2';";
                 values = [ parseInt(orderQueue) + 1 ];
                 sqlStr = mysql.format(sqlTempStr, values);
                 await db.queryDbPromise(sqlStr);
+
+
 
                 uploadAction = true;
                 return resolve();
