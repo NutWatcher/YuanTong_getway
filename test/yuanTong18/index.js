@@ -29,21 +29,21 @@ var order = [
 /*ExpressYunDa_Service.getToken().then(function (data) {
     console.log(data);
 });*/
-
+let aa={"error":true,"orderNo":"1051281143142112","payment":0,"remark":"YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字"};
 var cc = [];
 var dingdan = "105128114314211";
-for (var i = 0 ; i < 50; i ++){
+for (var i = 0 ; i < 1; i ++){
     dingdan = (parseInt(dingdan) + 1).toString() ;
     cc.push({
         "dingdan_id": dingdan,
         "seller_name": "李欢",
-        "seller_phone": "13552894357",
+        "seller_phone": "13552904357",
         "seller_prov": "北京",
         "seller_city": "北京",
         "seller_area": "北京",
         "seller_address": "北京上梅租房6栋北京市平谷区北京平谷马坊物流园",
         "reciever_name": "刘道平",
-        "reciever_phone": "1308738",
+        "reciever_phone": "1318738",
         "reciever_prov": "湖省",
         "reciever_city": "娄底市",
         "reciever_area": "新化县",

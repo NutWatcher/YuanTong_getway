@@ -1,9 +1,4 @@
-let fs = require('fs');
-let http = require('http');
-let crypto = require('crypto');
-let querystring = require('querystring');
-let moment = require('moment');
-
+import mysql from 'mysql';
 let masterDb = require('../util/MasterDB');
 let db = require('../util/DB');
 let UploadService = require('./upload');
@@ -13,9 +8,9 @@ class Order_Service {
     }
     static add(orderList){
         return new Promise(async (resolve, reject) => {
+            let Conn = null;
             try {
-                let res = {} , sqlTempStr, sqlStr, values;
-
+                let sqlTempStr, sqlStr, values;
                 Conn = await db.beginTransactionsPromise();
                 let initState = "5";
                 sqlTempStr = "INSERT INTO `order` " +
@@ -44,6 +39,9 @@ class Order_Service {
                 });
             }
             catch(e){
+                if (Conn != null) {
+                    await db.rollbackTransactionsPromise(Conn);
+                }
                 console.log("report " + e.stack);
                 reject(e);
             }
@@ -72,11 +70,12 @@ class Order_Service {
             }
         });
     }
+    static setOrderUploadError(order, remark, timeStamp){}
     static startOrderUpload(){
         return new Promise(async (resolve, reject) => {
             let uploadAction = false;
             try {
-                let res = {} , sqlTempStr, sqlStr, values;
+                let res , sqlTempStr, sqlStr, values;
                 sqlTempStr = "select * from config where id = 2 ;";
                 values = [];
                 sqlStr = mysql.format(sqlTempStr, values);
@@ -87,27 +86,47 @@ class Order_Service {
                 values = [orderQueue];
                 sqlStr = mysql.format(sqlTempStr, values);
                 res = await db.queryDbPromise(sqlStr);
-                if (res.length == 0){
+                if (res.length === 0){
                     return resolve();
                 }
 
                 // need upload
                 let order = res[0];
                 //todo platform
-                let platform = 1;
+                let platform = "1";
                 let resChunk = await UploadService.uploadOrder([order], platform);
                 let status = 400;
-                if (resChunk.status != 200){
+                if (resChunk.status !== 200){
                     status = 404;
                 }
                 console.log(resChunk.chunks);
                 let temp_chunk = JSON.parse(resChunk.chunks);
-                if (temp_chunk.IsError == undefined) {
+                if (temp_chunk.data === undefined){
+                    status = 910;
+                }
+                else if (temp_chunk.data.data === undefined){
+                    status = 910 ;
+                }
+                else if (temp_chunk.data.data[0].error === true){
+                    status = 900;
+                }
+                else if (temp_chunk.data.data[0].error === false){
                     status = 4;
                 }
-                else {
-                    status = temp_chunk.Code;
+
+                if(status === 900){
+                    if (temp_chunk.data.data[0].remark.indexOf("重复订单")){
+                        status = 801 ;
+                    }
+                    else if (temp_chunk.data.data[0].remark.indexOf("YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字")){
+                        status = 802 ;
+                    }
+                    else {
+                        this.setOrderUploadError(order.dingdanhao, temp_chunk.data.data[0].remark|| "", temp_chunk.data.data[0].timestamp || "");
+                    }
                 }
+
+
                 sqlTempStr = "UPDATE `order` SET `state`= ? WHERE `id`= ?;";
                 values = [status, order.id];
                 sqlStr = mysql.format(sqlTempStr, values);
@@ -117,7 +136,7 @@ class Order_Service {
                 let masterOrderId = order.master_db_id;
                 sqlTempStr = "SELECT * FROM tb_order_status_name where express_id = ? and status_code = ?;";
                 let tempExpressId = 5 ;
-                if (status == 10 || status == 404){ tempExpressId = 0; }
+                if (status === 4 || status === 404){ tempExpressId = 0; }
                 values = [tempExpressId , status];
                 sqlStr = mysql.format(sqlTempStr, values);
                 let resStatus = await masterDb.queryDbPromise(sqlStr);
@@ -127,8 +146,8 @@ class Order_Service {
                 sqlStr = mysql.format(sqlTempStr, values);
                 await masterDb.queryDbPromise(sqlStr);
 
-                if (temp_chunk.Data[0].OrderNo == order.dingdanhao){
-                    let yundanhao = temp_chunk.Data[0].WaybillNo;
+                if (temp_chunk.data.data[0].orderNo === order.dingdanhao){
+                    let yundanhao = temp_chunk.data.data[0].waybillNo;
 
                     sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
                     values = [yundanhao, order.id];
@@ -139,11 +158,10 @@ class Order_Service {
                     values = [yundanhao, masterOrderId];
                     sqlStr = mysql.format(sqlTempStr, values);
                     await masterDb.queryDbPromise(sqlStr);
-
                 }
 
 
-                let orderQueue = res[0].value;
+                //let orderQueue = res[0].value;
                 sqlTempStr = "UPDATE `config` SET `value`= ? WHERE `id`='2';";
                 values = [ parseInt(orderQueue) + 1 ];
                 sqlStr = mysql.format(sqlTempStr, values);
