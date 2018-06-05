@@ -2,10 +2,6 @@ let mysql = require( 'mysql');
 let masterDb = require('../util/MasterDB');
 let test = async() => {
     console.log("in");
-    try {
-        let cc = await masterDb.queryDbPromise("SELECT * FROM tb_slave_order;");
-    }catch (e){}
-    console.log("in1");
     let res = await masterDb.queryDbPromise("SELECT * FROM tb_slave_order;");
     console.log(res);
 };
