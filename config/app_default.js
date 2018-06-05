@@ -23,20 +23,12 @@ exports.app ={
     }
 };
 exports.dataBase = {
-    host : "",
+    host : "120.0.0.1",
     port : "",
-    database : "",
-    user : "",
-    password : "",
+    database: "test_getway_yuantong",
+    masterDatabase : "test_getway_order",
+    user: "",
+    password: "",
     multipleStatements: true,
-    connectionLimit : 3
-};
-exports.dataBase = {
-    host : "",
-    port : "",
-    database : "",
-    user : "",
-    password : "",
-    multipleStatements: true,
-    connectionLimit : 1
+    connectionLimit : 2
 };

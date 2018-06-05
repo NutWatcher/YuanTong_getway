@@ -3,11 +3,11 @@
  */
 let moment = require('moment');
 let mysql = require('mysql');
-let dbConfig = require('../config/app.js').masterDataBase;
+let dbConfig = require('../config/app.js').dataBase;
 let pool  = mysql.createPool({
     "host": dbConfig.host,
     "port": dbConfig.port,
-    "database": dbConfig.database,
+    "database": dbConfig.masterDatabase,
     "multipleStatements": dbConfig.multipleStatements||false,
     "user": dbConfig.user,
     "password": dbConfig.password,
