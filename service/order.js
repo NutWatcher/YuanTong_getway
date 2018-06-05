@@ -1,4 +1,4 @@
-import mysql from 'mysql';
+let mysql = require( 'mysql');
 let masterDb = require('../util/MasterDB');
 let db = require('../util/DB');
 let UploadService = require('./upload');

@@ -4,11 +4,11 @@
 let moment = require('moment');
 let mysql = require('mysql');
 let dbConfig = require('../config/app.js').dataBase;
+console.log(dbConfig);
 let pool  = mysql.createPool({
     "host": dbConfig.host,
     "port": dbConfig.port,
     "database": dbConfig.masterDatabase,
-    "multipleStatements": dbConfig.multipleStatements||false,
     "user": dbConfig.user,
     "password": dbConfig.password,
     "connectionLimit": dbConfig.connectionLimit||5
@@ -58,15 +58,12 @@ exports.queryDbPromise = function (strSql, connection) {
     return new Promise((resolve, reject) => {
         pool.getConnection(function(err, connection) {
             if (err) {
-
                 console.log(err);
-
                 reject(err);
             }
             connection.query(strSql, (err, res) => {
                 // And done with the connection.
                 if (err) {
-
                     reject(err);
                 }
                 else {
