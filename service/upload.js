@@ -48,11 +48,11 @@ class ExpressYuanTong_Service {
                         orders[i].seller_phone = (parseInt(orders[i].seller_phone) + 10000).toString();
                     }
                     let tempWeight = orders[i].weight;
-                    console.log(tempWeight);
+                   // console.log(tempWeight);
                     tempWeight = tempWeight.replace(/\s+/g, "")==""?0.5:tempWeight;
-                    console.log(tempWeight);
+                   // console.log(tempWeight);
                     tempWeight = isNaN(tempWeight) ? 0.5 : tempWeight ;
-                    console.log(tempWeight);
+                  //  console.log(tempWeight);
                     temp_data = {
                         "order_no" : orders[i].dingdanhao ,
                         "platform": Platform ,

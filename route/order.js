@@ -1,15 +1,18 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express');
+let router = express.Router();
 
 let OrderService = require('../service/order');
-router.post('/pushOrder', async (req, res, next) => {
+router.post('/pushOrder', async (req, res) => {
     try {
         console.log("pushOrder");
+        /** @namespace req.body.orderList */
         let orderList = req.body.orderList;
+
+        /** @namespace req.body.orderUUID */
         let orderUUID = req.body.orderUUID || "UUID";
         console.log("orderUUID " + orderUUID);
         let res = await OrderService.add(orderList);
-        if (res.success == true){
+        if (res.success === true){
             return res.json({
                 code: 1001,
                 msg: '加入队列成功!',
@@ -34,11 +37,10 @@ router.post('/pushOrder', async (req, res, next) => {
     } finally {
     }
 });
-router.post('/pullOrder', async (req, res, next) => {
+router.post('/pullOrder', async (req, res) => {
     try {
         console.log("pullOrder");
-        let orderList = req.body.orderList;
-        let infoList = OrderService.getState(orderList) ;
+        let infoList = OrderService.getState(req.body.orderList) ;
         let infoSet = new Set();
         let resList = [];
         for (let i = 0 ; i < infoList.length; i ++){

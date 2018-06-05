@@ -2,8 +2,8 @@ let mysql = require( 'mysql');
 let masterDb = require('../util/MasterDB');
 let db = require('../util/DB');
 let UploadService = require('./upload');
-let LoopService = require('../util/Loop');
 class Order_Service {
+    waybillNo;
     constructor() {
     }
     static add(orderList){
@@ -72,6 +72,7 @@ class Order_Service {
     }
     static setOrderUploadError(order, remark, timeStamp){}
     static startOrderUpload(){
+        console.log("startOrderUpload");
         return new Promise(async (resolve, reject) => {
             let uploadAction = false;
             try {
@@ -79,20 +80,23 @@ class Order_Service {
                 sqlTempStr = "select * from config where id = 2 ;";
                 values = [];
                 sqlStr = mysql.format(sqlTempStr, values);
+                console.log(sqlStr);
                 res = await db.queryDbPromise(sqlStr);
+                console.log(res);
 
                 let orderQueue = res[0].value;
-                sqlTempStr = "select * from order where id = ? ;";
+                sqlTempStr = "SELECT * FROM `order` where id = ?;";
                 values = [orderQueue];
                 sqlStr = mysql.format(sqlTempStr, values);
+                console.log(sqlStr);
                 res = await db.queryDbPromise(sqlStr);
+                console.log(res);
                 if (res.length === 0){
-                    return resolve();
+                    return resolve(uploadAction);
                 }
 
                 // need upload
                 let order = res[0];
-                //todo platform
                 let platform = "1";
                 let resChunk = await UploadService.uploadOrder([order], platform);
                 let status = 400;
@@ -115,10 +119,10 @@ class Order_Service {
                 }
 
                 if(status === 900){
-                    if (temp_chunk.data.data[0].remark.indexOf("重复订单")){
+                    if (temp_chunk.data.data[0].remark.indexOf("重复订单") === 0){
                         status = 801 ;
                     }
-                    else if (temp_chunk.data.data[0].remark.indexOf("YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字")){
+                    else if (temp_chunk.data.data[0].remark.indexOf("YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字") === 0){
                         status = 802 ;
                     }
                     else {
@@ -133,6 +137,8 @@ class Order_Service {
                 await db.queryDbPromise(sqlStr);
 
                 //更新master order 状态
+                /** @namespace order.master_db_id */
+
                 let masterOrderId = order.master_db_id;
                 sqlTempStr = "SELECT * FROM tb_order_status_name where express_id = ? and status_code = ?;";
                 let tempExpressId = 5 ;
@@ -141,14 +147,13 @@ class Order_Service {
                 sqlStr = mysql.format(sqlTempStr, values);
                 let resStatus = await masterDb.queryDbPromise(sqlStr);
                 let masterStatus = resStatus[0].id || 3;
-                sqlTempStr = "UPDATE `tb_slave_order_status` SET `status_id`= ? WHERE `id`= ?;";
+                sqlTempStr = "UPDATE `tb_slave_order_status` SET `status_id`= ? WHERE `order_id`= ?;";
                 values = [masterStatus, masterOrderId];
                 sqlStr = mysql.format(sqlTempStr, values);
                 await masterDb.queryDbPromise(sqlStr);
 
                 if (temp_chunk.data.data[0].orderNo === order.dingdanhao){
                     let yundanhao = temp_chunk.data.data[0].waybillNo;
-
                     sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
                     values = [yundanhao, order.id];
                     sqlStr = mysql.format(sqlTempStr, values);
@@ -160,24 +165,18 @@ class Order_Service {
                     await masterDb.queryDbPromise(sqlStr);
                 }
 
-
                 //let orderQueue = res[0].value;
                 sqlTempStr = "UPDATE `config` SET `value`= ? WHERE `id`='2';";
                 values = [ parseInt(orderQueue) + 1 ];
                 sqlStr = mysql.format(sqlTempStr, values);
                 await db.queryDbPromise(sqlStr);
 
-
-
                 uploadAction = true;
-                return resolve();
+                return resolve(uploadAction);
             }
             catch(e){
                 console.log(`report ${e.stack}`);
                 reject(e);
-            }
-            finally{
-                LoopService.EndEmitter(uploadAction);
             }
         });
     }

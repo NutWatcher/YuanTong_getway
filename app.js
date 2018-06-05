@@ -8,6 +8,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var LoopService = require('./util/Loop');
 
 // 用户登录信息
 
@@ -66,6 +67,12 @@ if (app.get('env') === 'development') {
             error: err
         });
     });
+}
+try{
+    LoopService.InitEmitter();
+}
+catch (e){
+    console.log(e.stack);
 }
 
 module.exports = app;
