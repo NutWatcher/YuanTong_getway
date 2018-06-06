@@ -10,6 +10,8 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var LoopService = require('./util/Loop');
 
+
+var RouterOrder = require('./route/order');
 // 用户登录信息
 
 global.APP_PATH = __dirname;
@@ -45,10 +47,12 @@ app.use('/images', function (req, res, next)  {
     res.header("Content-Type", "application/json;charset=utf-8");
     next();
 });
-
+app.use('/api/v1', RouterOrder);
 app.use('/', function (req, res, next)  {
-   return res.send("欢迎");
+    console.log("欢迎");
+    return res.send("欢迎");
 });
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

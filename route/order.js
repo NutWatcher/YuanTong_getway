@@ -6,13 +6,13 @@ router.post('/pushOrder', async (req, res) => {
     try {
         console.log("pushOrder");
         /** @namespace req.body.orderList */
-        let orderList = req.body.orderList;
-
+        let orderList = JSON.parse(req.body.orderList);
+        console.log(orderList);
         /** @namespace req.body.orderUUID */
         let orderUUID = req.body.orderUUID || "UUID";
         console.log("orderUUID " + orderUUID);
-        let res = await OrderService.add(orderList);
-        if (res.success === true){
+        let resAdd = await OrderService.add(orderList);
+        if (resAdd.success === true){
             return res.json({
                 code: 1001,
                 msg: '加入队列成功!',
@@ -69,3 +69,4 @@ router.post('/pullOrder', async (req, res) => {
     } finally {
     }
 });
+module.exports = router;

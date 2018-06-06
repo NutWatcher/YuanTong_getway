@@ -22,7 +22,7 @@ class Order_Service {
                 for (let i = 0 ; i < orderList.length ; i ++ ) {
                     let tempDingDan = orderList[i];
                     //console.log(tempDingDan);
-                    values = [initState, tempDingDan.dingdan_db_id, tempDingDan.dingdan_id, tempDingDan.yundan_id,
+                    values = [initState, tempDingDan.id, tempDingDan.dingdan_id, tempDingDan.yundan_id,
                         tempDingDan.seller_prov, tempDingDan.seller_city, tempDingDan.seller_area, tempDingDan.seller_address,
                         tempDingDan.seller_name, tempDingDan.seller_phone,
                         tempDingDan.reciever_prov, tempDingDan.reciever_city, tempDingDan.reciever_area, tempDingDan.reciever_address,
@@ -144,9 +144,15 @@ class Order_Service {
                 let tempExpressId = 5 ;
                 if (status === 4 || status === 404){ tempExpressId = 0; }
                 values = [tempExpressId , status];
+                console.log(JSON.stringify(values));
                 sqlStr = mysql.format(sqlTempStr, values);
                 let resStatus = await masterDb.queryDbPromise(sqlStr);
-                let masterStatus = resStatus[0].id || 3;
+                console.log(resStatus[0]);
+                let masterStatus = 3;
+                if (resStatus[0]){
+                    masterStatus = resStatus[0].id ? resStatus[0].id : 3;
+                }
+                console.log(masterStatus);
                 sqlTempStr = "UPDATE `tb_slave_order_status` SET `status_id`= ? WHERE `order_id`= ?;";
                 values = [masterStatus, masterOrderId];
                 sqlStr = mysql.format(sqlTempStr, values);
