@@ -15,8 +15,8 @@ class Loop_Service {
         return new Promise(async (resolve) => {
             try {
                 let uploadAction = await Order_service.startOrderUpload();
-                console.log("uploadAction : " + uploadAction);
                 if (uploadAction === true) {
+                    console.log("uploadAction : " + uploadAction);
                     return resolve();
                 }
                 else {

@@ -82,20 +82,21 @@ class Order_Service {
                 sqlStr = mysql.format(sqlTempStr, values);
                 console.log(sqlStr);
                 res = await db.queryDbPromise(sqlStr);
-                console.log(res);
+                //console.log(res);
 
                 let orderQueue = res[0].value;
                 sqlTempStr = "SELECT * FROM `order` where id = ?;";
                 values = [orderQueue];
                 sqlStr = mysql.format(sqlTempStr, values);
-                console.log(sqlStr);
+                //console.log(sqlStr);
                 res = await db.queryDbPromise(sqlStr);
-                console.log(res);
+                //console.log(res);
                 if (res.length === 0){
                     return resolve(uploadAction);
                 }
 
                 // need upload
+                console.log(sqlStr);
                 let order = res[0];
                 let platform = "1";
                 let resChunk = await UploadService.uploadOrder([order], platform);
@@ -158,17 +159,19 @@ class Order_Service {
                 sqlStr = mysql.format(sqlTempStr, values);
                 await masterDb.queryDbPromise(sqlStr);
 
-                if (temp_chunk.data.data[0].orderNo === order.dingdanhao){
-                    let yundanhao = temp_chunk.data.data[0].waybillNo;
-                    sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
-                    values = [yundanhao, order.id];
-                    sqlStr = mysql.format(sqlTempStr, values);
-                    await db.queryDbPromise(sqlStr);
+                if (status === 4) {
+                    if (temp_chunk.data.data[0].orderNo === order.dingdanhao) {
+                        let yundanhao = temp_chunk.data.data[0].waybillNo;
+                        sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
+                        values = [yundanhao, order.id];
+                        sqlStr = mysql.format(sqlTempStr, values);
+                        await db.queryDbPromise(sqlStr);
 
-                    sqlTempStr = "UPDATE `tb_slave_order` SET `yundan_id`= ?  WHERE `id`= ? ;";
-                    values = [yundanhao, masterOrderId];
-                    sqlStr = mysql.format(sqlTempStr, values);
-                    await masterDb.queryDbPromise(sqlStr);
+                        sqlTempStr = "UPDATE `tb_slave_order` SET `yundan_id`= ?  WHERE `id`= ? ;";
+                        values = [yundanhao, masterOrderId];
+                        sqlStr = mysql.format(sqlTempStr, values);
+                        await masterDb.queryDbPromise(sqlStr);
+                    }
                 }
 
                 //let orderQueue = res[0].value;
