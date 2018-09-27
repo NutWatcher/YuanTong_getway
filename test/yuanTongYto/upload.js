@@ -10,40 +10,34 @@ var crypto = require('crypto');
 var querystring = require('querystring');
 var moment = require('moment');
 global.APPCONFIG={
-    yuanTong_appId:"7e64bb14128a042acedfdf1c93a7804b",
-    yuanTong_secret:"e9c498b6756f31d8e911f4197353a5c3",
-    yuanTong_ip: '182.61.29.51',
-    yuanTong_port: '8089',
-    //yuanTong_tokenPath: '/v1/token',
-    yuanTong_orderUpPath: '/Api/V1/OrderSubmit',
+    yuanTong_appId:"K21000119",
+    yuanTong_secret:"u2Z1F7Fh",
+    yuanTong_ip: '58.32.246.71',
+    yuanTong_port: '8000',
+    yuanTong_orderUpPath: '/CommonOrderModeBPlusServlet.action',
     yuanTong_balancePath: '/Api/V1/BalanceGet',
     //yuanTong_searchPath: '/v1/fail/post'
 };
 class ExpressYuanTong_Service {
     constructor() {
     }
-    static createSHA(methodType, parmas, keySecret) {
-        let signString = `POST&${encodeURIComponent('/')}&`
-        for (let item in parmas) {
-            if (item !== 'timestamp') {
-                if (item === 'orders') {
-                    signString += encodeURIComponent(`${item}=${encodeURIComponent(parmas[item])}&`)
-                } else {
-                    signString += encodeURIComponent(`${item}=${parmas[item]}&`)
-                }
-            } else {
-                signString += encodeURIComponent(`${item}=${parmas[item]}`)
+    static encryption(param, keySecret) {
+        let signString = param + keySecret ;
+        let md5 = crypto.createHash('md5');
+        let password = md5.update(signString).digest('base64');
+        console.log(password);
+        return password ;
+    }
+    static concatXML(param){
+        let str = "";
+        for (let key in param){
+            let v = param[key];
+            if ( typeof (param[key]) == "object"){
+                v = this.concatXML(v) ;
             }
+            str += "<" + key + ">" + v + "</" + key + ">";
         }
-        console.log("签名字串");
-        console.log(signString);
-        var hmac = crypto.createHmac('sha1', global.APPCONFIG.yuanTong_secret+"&" );
-        hmac.update(signString);
-        console.log("签名加密");
-        var res = hmac.digest('base64');
-        console.log(res);
-
-        return res
+        return str ;
     }
     static uploadOrder(orders) {
         return new Promise(async (resolve, reject) => {
@@ -54,66 +48,85 @@ class ExpressYuanTong_Service {
                 for (let i = 0 ; i < orders.length ; i ++){
                     let temp_data ;
                     temp_data = {
-                        "order_no" : orders[i].dingdan_id ,
-                        "platform": '1',
+                        "clientID": global.APPCONFIG.yuanTong_appId,
+                        "logisticProviderID": "YTO",
+                        "customerId": global.APPCONFIG.yuanTong_appId,
+                        "txLogisticID" : orders[i].dingdan_id ,
+                        "tradeNo": "1",
+                        "orderType": "1",
+                        "serviceType": "1",
 
-                        "sendContact" : orders[i].seller_name ,
-                        "sendCellPhone" : orders[i].seller_phone ,
-                        "sendState" : orders[i].seller_prov ,
-                        "sendCity" : orders[i].seller_city ,
-                        "sendDistrict" : orders[i].seller_area ,
-                        "sendAddress" :  orders[i].seller_address ,
-
-                        "contact" : orders[i].reciever_name ,
-                        "cellPhone" : orders[i].reciever_phone ,
-                        "state" : orders[i].reciever_prov  ,
-                        "city" : orders[i].reciever_city ,
-                        "district" : orders[i].reciever_area ,
-                        "address" : orders[i].reciever_address ,
-
-                        "weight" : orders[i].weight ,
-                        "productTitle" : orders[i].goods_name ,
+                        "sender":{
+                            "name": orders[i].seller_name ,
+                            "mobile":orders[i].seller_phone ,
+                            "prov": orders[i].seller_prov ,
+                            "city": orders[i].seller_city  + "," + orders[i].seller_area ,
+                            "address": orders[i].seller_address ,
+                        },
+                        "receiver":{
+                            "name": orders[i].reciever_name ,
+                            "mobile":orders[i].reciever_phone ,
+                            "prov": orders[i].reciever_prov ,
+                            "city": orders[i].reciever_city  + "," + orders[i].reciever_area ,
+                            "address": orders[i].reciever_address ,
+                        },
+                        "itemName": orders[i].goods_name ,
+                        "number": 1,
                     };
                     orderList.push(temp_data);
                 }
-                var temp_data = {
-                    appkey: global.APPCONFIG.yuanTong_appId,
-                    interfaceType: '1',
-                    logisticsType: '1',
-                    orders:JSON.stringify(orderList),
-                    timestamp: new Date().getTime()
+                orderList = orderList[0];
+                let xml =  "<RequestOrder>" + this.concatXML(orderList) + "</RequestOrder>";
+                console.log(xml);
+                let post_data = {
+                    logistics_interface: encodeURIComponent(xml),
+                    data_digest: this.encryption(xml, global.APPCONFIG.yuanTong_secret),
+                    clientId: global.APPCONFIG.yuanTong_appId,
+                    type: "offline"
                 };
-                var post_data = {
-                    appkey: temp_data.appkey,
-                    logisticsType: temp_data.logisticsType,
-                    interfaceType: temp_data.interfaceType,
-                    orders: temp_data.orders,
-                    timestamp: temp_data.timestamp,
-                    sign: this.createSHA('POST', temp_data, true)
-                };
+
                 console.log(post_data);
-                post_data = JSON.stringify(post_data);
-                var options = {
+                post_data = querystring.stringify(post_data);
+                console.log(post_data);
+                let options = {
                     host:global.APPCONFIG.yuanTong_ip,
                     port:global.APPCONFIG.yuanTong_port,
                     path:global.APPCONFIG.yuanTong_orderUpPath,
                     method: 'POST',
                     headers: {
-                        'Content-Type': "application/json;charset=UTF-8"
+                        'Content-Type': "application/x-www-form-urlencoded",
+                        "Content-Length" : post_data.length
                     }
                 };
                 console.log(options);
-                var chunks = new Buffer('');
-                var req = http.request(options, function(res) {
+                let chunks = [];
+                let size = 0;
+                let req = http.request(options, function(res) {
                     console.log('STATUS: ' + res.statusCode);
                     console.log('HEADERS: ' + JSON.stringify(res.headers));
                     res.setEncoding('utf8');
                     res.on('data', function (chunk) {
-                        chunks = chunks.concat(chunk);
+                        chunks.push(chunk);
+                        size += chunk.length;
 
                     });
                     res.on('end', async function () {
-                        resolve(chunks.toString());
+                        let data = null;
+                        switch(chunks.length) {
+                            case 0: data = new Buffer(0);
+                                break;
+                            case 1: data = chunks[0];
+                                break;
+                            default:
+                                data = new Buffer(size);
+                                for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
+                                    let chunk = chunks[i];
+                                    chunk.copy(data, pos);
+                                    pos += chunk.length;
+                                }
+                                break;
+                        }
+                        resolve(data.toString());
                     });
                 });
                 req.setTimeout(10000, function() {

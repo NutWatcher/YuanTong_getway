@@ -3,8 +3,6 @@
  */
 require("babel/register");
 var ExpressYunDa_Service = require('./upload');
-var buffertools = require('buffertools');
-buffertools.extend();
 var order = [
     {
         "dingdan_id": "355dd550000112131",
@@ -29,7 +27,6 @@ var order = [
 /*ExpressYunDa_Service.getToken().then(function (data) {
     console.log(data);
 });*/
-let aa={"error":true,"orderNo":"1051281143142112","payment":0,"remark":"YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字"};
 var cc = [];
 var dingdan = "105128114314211";
 for (var i = 0 ; i < 1; i ++){
