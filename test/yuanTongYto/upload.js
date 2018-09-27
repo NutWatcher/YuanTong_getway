@@ -9,7 +9,7 @@ var http = require('http');
 var crypto = require('crypto');
 var querystring = require('querystring');
 var moment = require('moment');
-global.APPCONFIG={
+var APPCONFIG={
     yuanTong_appId:"K21000119",
     yuanTong_secret:"u2Z1F7Fh",
     yuanTong_ip: '58.32.246.71',
@@ -23,6 +23,8 @@ class ExpressYuanTong_Service {
     }
     static encryption(param, keySecret) {
         let signString = param + keySecret ;
+        //console.log(signString);
+        signString = (new Buffer(signString)).toString("binary");
         let md5 = crypto.createHash('md5');
         let password = md5.update(signString).digest('base64');
         console.log(password);
@@ -48,9 +50,9 @@ class ExpressYuanTong_Service {
                 for (let i = 0 ; i < orders.length ; i ++){
                     let temp_data ;
                     temp_data = {
-                        "clientID": global.APPCONFIG.yuanTong_appId,
+                        "clientID": APPCONFIG.yuanTong_appId,
                         "logisticProviderID": "YTO",
-                        "customerId": global.APPCONFIG.yuanTong_appId,
+                        "customerId": APPCONFIG.yuanTong_appId,
                         "txLogisticID" : orders[i].dingdan_id ,
                         "tradeNo": "1",
                         "orderType": "1",
@@ -76,12 +78,15 @@ class ExpressYuanTong_Service {
                     orderList.push(temp_data);
                 }
                 orderList = orderList[0];
+                //orderList = `<clientID>K21000119</clientID><logisticProviderID>YTO</logisticProviderID><customerId >K21000119</customerId><txLogisticID>ccccasd13123123</txLogisticID><tradeNo>1</tradeNo><totalServiceFee>0.0</totalServiceFee><codSplitFee>0.0</codSplitFee><orderType>0</orderType><serviceType>1</serviceType><flag>1</flag><sender><name>寄件人姓名</name><postCode>526238</postCode><phone>021-12345678</phone><mobile>18112345678</mobile><prov>上海</prov><city>上海,青浦区</city><address>华徐公路3029弄28号</address></sender><receiver><name>收件人姓名</name><postCode>0</postCode><phone>0</phone><mobile>1808966676</mobile><prov>上海</prov><city>上海市,青浦区</city><address>华徐公路3029弄28号</address></receiver><sendStartTime>2015-12-12 12:12:12</sendStartTime><sendEndTime>2015-12-12 12:12:12</sendEndTime><goodsValue>1</goodsValue><items><item><itemName>商品</itemName><number>2</number><itemValue>0</itemValue></item></items><insuranceValue>1</insuranceValue><special>1</special><remark>1</remark>`;
+                console.log(orderList);
                 let xml =  "<RequestOrder>" + this.concatXML(orderList) + "</RequestOrder>";
+
                 console.log(xml);
                 let post_data = {
-                    logistics_interface: encodeURIComponent(xml),
-                    data_digest: this.encryption(xml, global.APPCONFIG.yuanTong_secret),
-                    clientId: global.APPCONFIG.yuanTong_appId,
+                    logistics_interface: (xml),
+                    data_digest: (this.encryption(xml, APPCONFIG.yuanTong_secret)),
+                    clientId: APPCONFIG.yuanTong_appId,
                     type: "offline"
                 };
 
@@ -89,13 +94,12 @@ class ExpressYuanTong_Service {
                 post_data = querystring.stringify(post_data);
                 console.log(post_data);
                 let options = {
-                    host:global.APPCONFIG.yuanTong_ip,
-                    port:global.APPCONFIG.yuanTong_port,
-                    path:global.APPCONFIG.yuanTong_orderUpPath,
+                    host:APPCONFIG.yuanTong_ip,
+                    port:APPCONFIG.yuanTong_port,
+                    path:APPCONFIG.yuanTong_orderUpPath,
                     method: 'POST',
                     headers: {
-                        'Content-Type': "application/x-www-form-urlencoded",
-                        "Content-Length" : post_data.length
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     }
                 };
                 console.log(options);
@@ -143,7 +147,6 @@ class ExpressYuanTong_Service {
                 });
                 req.write(post_data);
                 req.end();
-
             }
             catch(e){
                 console.log("ExpressYuanTong_Service uploadOrder error");

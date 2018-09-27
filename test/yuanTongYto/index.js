@@ -28,7 +28,7 @@ var order = [
     console.log(data);
 });*/
 var cc = [];
-var dingdan = "105128114314211";
+var dingdan = "1051281114211";
 for (var i = 0 ; i < 1; i ++){
     dingdan = (parseInt(dingdan) + 1).toString() ;
     cc.push({
