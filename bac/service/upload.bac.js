@@ -1,4 +1,4 @@
-let ApiConfig = require('../config/app.js').app.dev;
+let ApiConfig = require('../../config/app.js').app.dev;
 
 let fs = require('fs');
 let http = require('http');

@@ -1,7 +1,7 @@
 let mysql = require('mysql');
-let masterDb = require('../util/MasterDB');
-let db = require('../util/DB');
-let UploadService = require('./upload');
+let masterDb = require('../../util/MasterDB');
+let db = require('../../util/DB');
+let UploadService = require('../../service/upload');
 class Order_Service {
     waybillNo;
     constructor() {}
@@ -64,56 +64,6 @@ class Order_Service {
         });
     }
     static setOrderUploadError(order, remark, timeStamp) {}
-    static parseXML(param= ""){
-        try {
-            console.log(param);
-            let yundanhao = "未分配", dingdanhao = "***";
-            let codeReg = /<code>.*<\/code>/g;
-            let code = codeReg.exec(param);
-            console.log(code);
-            if (code === null) {
-                code = "405";
-            }
-            else {
-                console.log(code[0]);
-                console.log(code[0].replace("<code>", "").replace("</code>", ""));
-                code = code[0].replace("<code>", "").replace("</code>", "");
-            }
-            let reasonReg = /<reason>.*<\/reason>/g;
-            let reason = reasonReg.exec(param);
-            if (reason === null) {
-                reason = "";
-            }
-            else {
-                reason = reason[0].replace("<reason>", "").replace("</reason>", "");
-            }
-            if (code === '200'){
-                let mailReg = /<mailNo>.*<\/mailNo>/g;
-                yundanhao = mailReg.exec(param);
-                if (yundanhao === null) {
-                    yundanhao = "";
-                }
-                else {
-                    yundanhao = yundanhao[0].replace("<mailNo>", "").replace("</mailNo>", "");
-                }
-
-                let dingdanReg = /<txLogisticID>.*<\/txLogisticID>/g;
-                dingdanhao = mailReg.exec(param);
-                if (dingdanhao === null) {
-                    dingdanhao = "";
-                }
-                else {
-                    dingdanhao = dingdanhao[0].replace("<txLogisticID>", "").replace("</txLogisticID>", "");
-                }
-            }
-            return {code:code, reason:reason, yundanhao:yundanhao, dingdanhao:dingdanhao} ;
-        }
-        catch (e){
-            console.log(e.stack);
-            return {code:"405", reason:e.toString(), yundanhao:"未分配"} ;
-        }
-
-    }
     static startOrderUpload() {
         console.log("startOrderUpload");
         return new Promise(async(resolve, reject) => {
@@ -141,40 +91,32 @@ class Order_Service {
                 // need upload
                 console.log(sqlStr);
                 let order = res[0];
+                let platform = "1";
                 let resChunk = await UploadService.uploadOrder(order);
                 let status = 400;
                 if (resChunk.status !== 200) {
                     status = 404;
                 }
                 console.log(resChunk.chunks);
-               // let temp_chunk = JSON.parse(resChunk.chunks);
-                let resJSON = this.parseXML(resChunk.chunks);
-                console.log(resJSON);
-                if (resJSON.code === "405") {
+                let temp_chunk = JSON.parse(resChunk.chunks);
+                if (temp_chunk.data === undefined) {
                     status = 910;
-                }else if (resJSON.code === "S01") {
-                    status = 701;
-                }else if (resJSON.code === "S02") {
-                    status = 902;
-                }else if (resJSON.code === "S03") {
-                    status = 903;
-                }else if (resJSON.code === "S04") {
-                    status = 904;
-                }else if (resJSON.code === "S05") {
-                    status = 905;
-                }else if (resJSON.code === "S06") {
-                    status = 906;
-                }else if (resJSON.code === "S07") {
-                    status = 907;
-                }else if (resJSON.code === "S08") {
-                    status = 801;
-                }else if (resJSON.code === "S09") {
-                    status = 803;
-                }else if (resJSON.code === "200") {
+                } else if (temp_chunk.data.data === undefined) {
+                    status = 910;
+                } else if (temp_chunk.data.data[0].error === true) {
+                    status = 900;
+                } else if (temp_chunk.data.data[0].error === false) {
                     status = 4;
                 }
-                if (resChunk.status !== 200) {
-                    status = 404;
+
+                if (status === 900) {
+                    if (temp_chunk.data.data[0].remark.indexOf("重复订单") === 0) {
+                        status = 801;
+                    } else if (temp_chunk.data.data[0].remark.indexOf("YTO exception on saving datas：圆通数据保存异常,请检查数据中是否有乱码字") === 0) {
+                        status = 802;
+                    } else {
+                        this.setOrderUploadError(order.dingdanhao, temp_chunk.data.data[0].remark || "", temp_chunk.data.data[0].timestamp || "");
+                    }
                 }
 
 
@@ -206,8 +148,8 @@ class Order_Service {
                 await masterDb.queryDbPromise(sqlStr);
 
                 if (status === 4) {
-                    if (resJSON.dingdanhao === order.dingdanhao) {
-                        let yundanhao = resJSON.yundanhao;
+                    if (temp_chunk.data.data[0].orderNo === order.dingdanhao) {
+                        let yundanhao = temp_chunk.data.data[0].waybillNo;
                         sqlTempStr = "UPDATE `order` SET `yundanhao`= ? WHERE `id`= ?;";
                         values = [yundanhao, order.id];
                         sqlStr = mysql.format(sqlTempStr, values);

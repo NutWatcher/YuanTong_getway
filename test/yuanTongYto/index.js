@@ -29,8 +29,8 @@ var order = [
 });*/
 var cc = [];
 var dingdan = "1051281114211";
-for (var i = 0 ; i < 1; i ++){
-    dingdan = (parseInt(dingdan) + 1).toString() ;
+for (var i = 0; i < 1; i++) {
+    dingdan = (parseInt(dingdan) + 1).toString();
     cc.push({
         "dingdan_id": dingdan,
         "seller_name": "李欢",
@@ -70,9 +70,47 @@ for (var i = 0 ; i < 1; i ++){
 //     "goods_name": "安卓数据线",
 //     "weight": "1.0"
 // }];
- ExpressYunDa_Service.uploadOrder(cc).then(function (data) {
-  console.log(data);
-  });
+var parseXML=function(param){
+    try {
+        console.log(param);
+        var yundanhao = "未分配";
+        var codeReg = /<code>.*<\/code>/g;
+        var code = codeReg.exec(param);
+        if (code === null) {
+            code = "405";
+        }
+        else {
+            code = code[0].replace("<code>", "").replace("</code>", "");
+        }
+        var reasonReg = /<reason>.*<\/reason>/g;
+        var reason = reasonReg.exec(param);
+        if (reason === null) {
+            reason = "";
+        }
+        else {
+            reason = reason[0].replace("<reason>", "").replace("</reason>", "");
+        }
+        if (code === '200'){
+            var mailReg = /<mailNo>.*<\/mailNo>/g;
+            yundanhao = mailReg.exec(param);
+            if (yundanhao === null) {
+                yundanhao = "";
+            }
+            else {
+                yundanhao = yundanhao[0].replace("<mailNo>", "").replace("</mailNo>", "");
+            }
+        }
+    }
+    catch (e){
+        console.log(e);
+    }
+    return {code:code, reason:reason, yundanhao:yundanhao} ;
+}
+ExpressYunDa_Service.uploadOrder(cc).then(function (data) {
+    var res = parseXML(data);
+    console.log(res);
+    console.log(data);
+});
 
 //
 // ExpressYunDa_Service.getBalance().then(function (data) {
