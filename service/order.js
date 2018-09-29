@@ -98,7 +98,7 @@ class Order_Service {
                 }
 
                 let dingdanReg = /<txLogisticID>.*<\/txLogisticID>/g;
-                dingdanhao = mailReg.exec(param);
+                dingdanhao = dingdanReg.exec(param);
                 if (dingdanhao === null) {
                     dingdanhao = "";
                 }
