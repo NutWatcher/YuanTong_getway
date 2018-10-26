@@ -58,7 +58,7 @@ class ExpressYuanTong_Service {
                     "customerId": apiInfo.yuanTong_appId,
                     "txLogisticID" : order.dingdanhao ,
                     "tradeNo": "1",
-                    "mailNo": order.yundanhao,
+                    //"mailNo": order.yundanhao,
                     "orderType": "1",
                     "serviceType": "1",
 
