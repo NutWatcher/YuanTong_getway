@@ -244,7 +244,7 @@ class Order_Service {
                         sqlStr = mysql.format(sqlTempStr, values);
                         await masterDb.queryDbPromise(sqlStr);
 
-                        sqlTempStr = "INSERT INTO `tb_slave_order_extra_yuantong` ( `dingdanhao`, `yundanhao`, `shortAddress`, `consigneeBranchCode`, `packageCenterCode`) VALUES ( ? , ? , ? , ? , ? , ? );";
+                        sqlTempStr = "INSERT INTO `tb_slave_order_extra_yuantong` ( `dingdanhao`, `yundanhao`, `shortAddress`, `consigneeBranchCode`, `packageCenterCode`) VALUES ( ? , ? , ? , ? , ? );";
                         values = [order.dingdanhao, yundanhao, shortAddress, consigneeBranchCode, packageCenterCode];
                         sqlStr = mysql.format(sqlTempStr, values);
                         await masterDb.queryDbPromise(sqlStr);
