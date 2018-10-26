@@ -68,6 +68,7 @@ class Order_Service {
         try {
             console.log(param);
             let yundanhao = "未分配", dingdanhao = "***";
+            let shortAddress = "111-111-111-111", consigneeBranchCode = "111111", packageCenterCode = "111111";
             let codeReg = /<code>.*<\/code>/g;
             let code = codeReg.exec(param);
             console.log(code);
@@ -105,8 +106,25 @@ class Order_Service {
                 else {
                     dingdanhao = dingdanhao[0].replace("<txLogisticID>", "").replace("</txLogisticID>", "");
                 }
+
+                let shortAddressReg = /<shortAddress>.*<\/shortAddress>/g;
+                shortAddress = shortAddressReg.exec(param);
+                if (shortAddress !== null) {
+                    shortAddress = shortAddress[0].replace("<shortAddress>", "").replace("</shortAddress>", "");
+                }
+                let consigneeBranchCodeReg = /<consigneeBranchCode>.*<\/consigneeBranchCode>/g;
+                consigneeBranchCode = consigneeBranchCodeReg.exec(param);
+                if (consigneeBranchCode !== null) {
+                    consigneeBranchCode = consigneeBranchCode[0].replace("<consigneeBranchCode>", "").replace("</consigneeBranchCode>", "");
+                }
+                let packageCenterCodeReg = /<packageCenterCode>.*<\/packageCenterCode>/g;
+                packageCenterCode = packageCenterCodeReg.exec(param);
+                if (packageCenterCode !== null) {
+                    packageCenterCode = packageCenterCode[0].replace("<packageCenterCode>", "").replace("</packageCenterCode>", "");
+                }
             }
-            return {code:code, reason:reason, yundanhao:yundanhao, dingdanhao:dingdanhao} ;
+            return {code:code, reason:reason, yundanhao:yundanhao, dingdanhao:dingdanhao,
+                shortAddress:shortAddress, packageCenterCode:packageCenterCode, consigneeBranchCode: consigneeBranchCode} ;
         }
         catch (e){
             console.log(e.stack);
@@ -213,8 +231,21 @@ class Order_Service {
                         sqlStr = mysql.format(sqlTempStr, values);
                         await db.queryDbPromise(sqlStr);
 
+                        let shortAddress = resJSON.shortAddress|| "111-111-111-111";
+                        let consigneeBranchCode = resJSON.shortAddress|| "111111";
+                        let packageCenterCode = resJSON.shortAddress|| "111111";
+                        sqlTempStr = "INSERT INTO `order_info` (`order_id`, `dingdanhao`, `yundanhao`, `shortAddress`, `consigneeBranchCode`, `packageCenterCode`) VALUES ( ? , ? , ? , ? , ? , ? );";
+                        values = [order.id, order.dingdanhao, yundanhao, shortAddress, consigneeBranchCode, packageCenterCode];
+                        sqlStr = mysql.format(sqlTempStr, values);
+                        await db.queryDbPromise(sqlStr);
+
                         sqlTempStr = "UPDATE `tb_slave_order` SET `yundan_id`= ?  WHERE `id`= ? ;";
                         values = [yundanhao, masterOrderId];
+                        sqlStr = mysql.format(sqlTempStr, values);
+                        await masterDb.queryDbPromise(sqlStr);
+
+                        sqlTempStr = "INSERT INTO `tb_slave_order_extra_yuantong` ( `dingdanhao`, `yundanhao`, `shortAddress`, `consigneeBranchCode`, `packageCenterCode`) VALUES ( ? , ? , ? , ? , ? , ? );";
+                        values = [order.dingdanhao, yundanhao, shortAddress, consigneeBranchCode, packageCenterCode];
                         sqlStr = mysql.format(sqlTempStr, values);
                         await masterDb.queryDbPromise(sqlStr);
                     }
